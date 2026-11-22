@@ -35,3 +35,20 @@ void log_event(const char *message)
 
     close(fd);
 }
+
+void log_status_report(const ChildProcess *children, int count)
+{
+    int i;
+    char msg[160];
+
+    log_event("=== STATUS REPORT (SIGUSR1) ===");
+    for (i = 0; i < count; i++) {
+        snprintf(msg, sizeof(msg), "Child: %s | PID: %d | State: %s | Restarts: %d/%d",
+                 children[i].name,
+                 children[i].pid,
+                 children[i].is_running ? "RUNNING" : "STOPPED",
+                 children[i].restart_count,
+                 MAX_RESTARTS);
+        log_event(msg);
+    }
+}
