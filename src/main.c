@@ -49,6 +49,11 @@ int main(void)
         }
     }
 
-    log_event("Shutdown signal received, exiting main loop");
+    alarm(0);
+    log_event("Shutdown signal received, initiating graceful shutdown");
+    terminate_all_children(children, MAX_CHILDREN);
+    log_event("Watchdog shutdown complete");
+    printf("Watchdog shutdown complete.\n");
+
     return 0;
 }
