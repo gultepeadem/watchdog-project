@@ -135,3 +135,53 @@ void handle_child_exit(ChildProcess *children, int count)
         }
     }
 }
+
+void terminate_all_children(ChildProcess *children, int count)
+{
+    int i;
+    int elapsed;
+    int remaining;
+    int status;
+    pid_t res;
+    char msg[128];
+
+    for (i = 0; i < count; i++) {
+        if (children[i].is_running && children[i].pid > 0) {
+            snprintf(msg, sizeof(msg), "Sending SIGTERM to %s (PID %d)", children[i].name, children[i].pid);
+            log_event(msg);
+            kill(children[i].pid, SIGTERM);
+        }
+    }
+
+    for (elapsed = 0; elapsed < 5; elapsed++) {
+        remaining = 0;
+        for (i = 0; i < count; i++) {
+            if (children[i].is_running && children[i].pid > 0) {
+                res = waitpid(children[i].pid, &status, WNOHANG);
+                if (res > 0) {
+                    children[i].is_running = 0;
+                    snprintf(msg, sizeof(msg), "%s (PID %d) terminated gracefully", children[i].name, children[i].pid);
+                    log_event(msg);
+                } else if (res == 0) {
+                    remaining++;
+                } else {
+                    children[i].is_running = 0;
+                }
+            }
+        }
+        if (remaining == 0) {
+            break;
+        }
+        sleep(1);
+    }
+
+    for (i = 0; i < count; i++) {
+        if (children[i].is_running && children[i].pid > 0) {
+            snprintf(msg, sizeof(msg), "Timeout reached, sending SIGKILL to %s (PID %d)", children[i].name, children[i].pid);
+            log_event(msg);
+            kill(children[i].pid, SIGKILL);
+            waitpid(children[i].pid, &status, 0);
+            children[i].is_running = 0;
+        }
+    }
+}
