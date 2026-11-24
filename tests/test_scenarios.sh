@@ -16,7 +16,11 @@ sleep 1
 
 echo "=== 4. Testing unexpected termination and restart limit (3 restarts) ==="
 for i in 1 2 3 4; do
-    WORKER_PID=$(pgrep -P $WATCHDOG_PID | head -n 1)
+    if [ $i -eq 1 ]; then
+        WORKER_PID=$(pgrep -P $WATCHDOG_PID | head -n 1)
+    else
+        WORKER_PID=$(pgrep -P $WATCHDOG_PID | tail -n 1)
+    fi
     if [ -n "$WORKER_PID" ]; then
         echo "Killing worker PID $WORKER_PID (attempt $i)"
         kill -SIGKILL $WORKER_PID
