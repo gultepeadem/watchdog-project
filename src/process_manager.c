@@ -149,7 +149,7 @@ void terminate_all_children(ChildProcess *children, int count)
         if (children[i].is_running && children[i].pid > 0) {
             snprintf(msg, sizeof(msg), "Sending SIGTERM to %s (PID %d)", children[i].name, children[i].pid);
             log_event(msg);
-            kill(children[i].pid, SIGTERM);
+            if (kill(children[i].pid, SIGTERM) < 0) { perror("kill SIGTERM"); }
         }
     }
 
@@ -179,7 +179,7 @@ void terminate_all_children(ChildProcess *children, int count)
         if (children[i].is_running && children[i].pid > 0) {
             snprintf(msg, sizeof(msg), "Timeout reached, sending SIGKILL to %s (PID %d)", children[i].name, children[i].pid);
             log_event(msg);
-            kill(children[i].pid, SIGKILL);
+            if (kill(children[i].pid, SIGKILL) < 0) { perror("kill SIGKILL"); }
             waitpid(children[i].pid, &status, 0);
             children[i].is_running = 0;
         }
