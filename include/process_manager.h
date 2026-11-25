@@ -20,6 +20,7 @@ extern volatile sig_atomic_t alarm_triggered;
 int start_children(ChildProcess *children, int count);
 int setup_child_signals(void);
 void handle_child_exit(ChildProcess *children, int count);
+void check_children_health(ChildProcess *children, int count);
 void terminate_all_children(ChildProcess *children, int count);
 
 #endif /* PROCESS_MANAGER_H */

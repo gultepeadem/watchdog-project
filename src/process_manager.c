@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include "process_manager.h"
+#include "signal_manager.h"
 #include "logger.h"
 
 volatile sig_atomic_t child_exited = 0;
@@ -19,6 +21,13 @@ static void handle_sigalrm(int signum)
 {
     (void)signum;
     alarm_triggered = 1;
+}
+
+static void reset_child_signal_mask(void)
+{
+    sigset_t empty_mask;
+    sigemptyset(&empty_mask);
+    sigprocmask(SIG_SETMASK, &empty_mask, NULL);
 }
 
 int setup_child_signals(void)
@@ -67,6 +76,7 @@ int start_children(ChildProcess *children, int count)
             perror("fork");
             return -1;
         } else if (pid == 0) {
+            reset_child_signal_mask();
             execl("./workers/worker", "worker", (char *)NULL);
             perror("execl");
             _exit(1);
@@ -109,12 +119,13 @@ void handle_child_exit(ChildProcess *children, int count)
                 }
                 log_event(msg);
 
-                if (children[i].restart_count < MAX_RESTARTS) {
+                if (!shutdown_requested && children[i].restart_count < MAX_RESTARTS) {
                     pid_t new_pid = fork();
                     if (new_pid < 0) {
                         perror("fork restart");
                     } else if (new_pid == 0) {
-                        execl("./workers/worker", "worker", (char *)NULL);
+                        reset_child_signal_mask();
+            execl("./workers/worker", "worker", (char *)NULL);
                         perror("execl restart");
                         _exit(1);
                     } else {
@@ -125,7 +136,7 @@ void handle_child_exit(ChildProcess *children, int count)
                                  children[i].name, new_pid, children[i].restart_count, MAX_RESTARTS);
                         log_event(msg);
                     }
-                } else {
+                } else if (!shutdown_requested) {
                     snprintf(msg, sizeof(msg), "%s reached max restart limit (%d), not restarting",
                              children[i].name, MAX_RESTARTS);
                     log_event(msg);
@@ -182,6 +193,26 @@ void terminate_all_children(ChildProcess *children, int count)
             if (kill(children[i].pid, SIGKILL) < 0) { perror("kill SIGKILL"); }
             waitpid(children[i].pid, &status, 0);
             children[i].is_running = 0;
+        }
+    }
+}
+
+void check_children_health(ChildProcess *children, int count)
+{
+    int i;
+    char msg[128];
+
+    log_event("Periodic health check triggered by SIGALRM");
+
+    for (i = 0; i < count; i++) {
+        if (children[i].is_running && children[i].pid > 0) {
+            if (kill(children[i].pid, 0) < 0 && errno == ESRCH) {
+                snprintf(msg, sizeof(msg),
+                         "Health check detected missing %s (PID %d)",
+                         children[i].name, children[i].pid);
+                log_event(msg);
+                handle_child_exit(children, count);
+            }
         }
     }
 }

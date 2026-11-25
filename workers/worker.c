@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
@@ -11,10 +12,16 @@ static void handle_term(int signum)
     running = 0;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
     struct sigaction sa_term;
     struct sigaction sa_ign;
+    int max_seconds = 0;
+    int elapsed = 0;
+
+    if (argc > 1) {
+        max_seconds = atoi(argv[1]);
+    }
 
     memset(&sa_term, 0, sizeof(sa_term));
     sa_term.sa_handler = handle_term;
@@ -39,6 +46,10 @@ int main(void)
 
     while (running) {
         sleep(1);
+        elapsed++;
+        if (max_seconds > 0 && elapsed >= max_seconds) {
+            break;
+        }
     }
 
     printf("Worker exiting normally. PID: %d\n", getpid());
