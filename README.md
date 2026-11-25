@@ -23,7 +23,7 @@ To clean compiled binaries and logs:
     make clean
 
 ## Usage
-Start the supervisor process:
+Run the supervisor from the project root directory (required so the relative path `./workers/worker` resolves correctly):
     ./watchdog
 
 From another terminal, send signals to the running watchdog process:
@@ -34,6 +34,6 @@ From another terminal, send signals to the running watchdog process:
     ./tests/test_scenarios.sh
 
 ## Group Members & Responsibilities
-- Adem Gultepe (gultepeadem) - Student 1: Signal Management & Main Control Loop (signal_manager.h/.c, main.c)
-- Irem Ekmekci (iremekmekci) - Student 2: Child Process Management & Worker (process_manager.h/.c, worker.c)
-- Zeynep Pektas (Zeynosh) - Student 3: Logging, Build System, Testing & Documentation (logger.h/.c, Makefile, tests/test_scenarios.sh, README.md)
+- Adem Gultepe (B231202300, gultepeadem) - Student 1: Signal Management & Main Control Loop (signal_manager.h/.c, main.c)
+- Irem Ekmekci (B231202055, iremekmekci) - Student 2: Child Process Management & Worker (process_manager.h/.c, worker.c)
+- Zeynep Pektas (B211202054, Zeynosh) - Student 3: Logging, Build System, Testing & Documentation (logger.h/.c, Makefile, tests/test_scenarios.sh, README.md)
